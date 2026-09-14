@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Happy Feet — Calendar</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <style>
+    #calendar { background: white; padding: 12px; border-radius: 10px; border: 1px solid #ecdcd6; }
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      align-items: center; justify-content: center; z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: white; border-radius: 10px; padding: 24px; width: 360px; max-height: 90vh; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>🌸 Happy Feet — Appointments</h1>
+    <nav>
+      <span style="margin-right:16px; opacity:0.85;">Hi, <%= user.name %> (<%= user.role %>)</span>
+      <% if (user.role === 'admin') { %><a href="/admin">Admin Panel</a><% } %>
+      <form method="POST" action="/logout" style="display:inline;">
+        <a href="#" onclick="this.closest('form').submit(); return false;">Log Out</a>
+      </form>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="card" style="display:flex; justify-content: space-between; align-items:center;">
+      <div>Click any empty time on the calendar to book a new appointment. Click an existing appointment to view, reschedule (drag it), or cancel it.</div>
+      <button onclick="openNewModal()">+ New Appointment</button>
+    </div>
+    <div id="calendar"></div>
+  </div>
+
+  <!-- Booking / view modal -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <h3 id="modalTitle">New Appointment</h3>
+      <form id="apptForm">
+        <input type="hidden" id="apptId">
+        <div class="field">
+          <label>Customer Name</label>
+          <input type="text" id="customerName" required>
+        </div>
+        <div class="field">
+          <label>Phone Number</label>
+          <input type="text" id="customerPhone" placeholder="94771234567" required>
+        </div>
+        <div class="field">
+          <label>Service / Treatment</label>
+          <select id="serviceId" required>
+            <% services.forEach(s => { %>
+              <option value="<%= s.id %>"><%= s.name %> (<%= s.duration_minutes %> min)</option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="apptDate" required>
+        </div>
+        <div class="field">
+          <label>Time</label>
+          <input type="time" id="apptTime" required>
+        </div>
+        <div class="field">
+          <label>Notes (optional)</label>
+          <textarea id="apptNotes" rows="2"></textarea>
+        </div>
+        <div id="formError" class="error-text"></div>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button type="submit" id="saveBtn">Save Appointment</button>
+          <button type="button" id="cancelApptBtn" style="background:#c0392b; display:none;">Cancel Appointment</button>
+          <button type="button" onclick="closeModal()" style="background:#999;">Close</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const calendarEl = document.getElementById('calendar');
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'timeGridWeek',
+      headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
+      slotMinTime: '08:00:00',
+      slotMaxTime: '21:00:00',
+      height: 700,
+      selectable: true,
+      editable: true,
+      events: '/api/appointments',
+      select: (info) => openNewModal(info.start),
+      eventClick: (info) => openViewModal(info.event),
+      eventDrop: async (info) => {
+        const res = await fetch(`/api/appointments/${info.event.id}/reschedule`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ start_time: info.event.start.toISOString() }),
+        });
+        if (!res.ok) { alert('Could not reschedule — slot may clash.'); info.revert(); }
+      },
+    });
+    calendar.render();
+
+    const backdrop = document.getElementById('modalBackdrop');
+    const form = document.getElementById('apptForm');
+    const cancelBtn = document.getElementById('cancelApptBtn');
+
+    function openNewModal(date) {
+      form.reset();
+      document.getElementById('apptId').value = '';
+      document.getElementById('modalTitle').innerText = 'New Appointment';
+      document.getElementById('formError').innerText = '';
+      cancelBtn.style.display = 'none';
+      document.getElementById('customerName').disabled = false;
+      document.getElementById('customerPhone').disabled = false;
+      document.getElementById('serviceId').disabled = false;
+      document.getElementById('apptDate').disabled = false;
+      document.getElementById('apptTime').disabled = false;
+      document.getElementById('saveBtn').style.display = 'inline-block';
+      if (date) {
+        const d = new Date(date);
+        document.getElementById('apptDate').value = d.toISOString().slice(0,10);
+        document.getElementById('apptTime').value = d.toTimeString().slice(0,5);
+      }
+      backdrop.classList.add('open');
+    }
+
+    function openViewModal(event) {
+      form.reset();
+      document.getElementById('apptId').value = event.id;
+      document.getElementById('modalTitle').innerText = 'Appointment Details';
+      document.getElementById('formError').innerText = '';
+      document.getElementById('customerName').value = event.title.split(' — ')[0];
+      document.getElementById('customerPhone').value = event.extendedProps.phone;
+      document.getElementById('customerPhone').disabled = true;
+      document.getElementById('customerName').disabled = true;
+      document.getElementById('serviceId').disabled = true;
+      document.getElementById('apptDate').value = event.start.toISOString().slice(0,10);
+      document.getElementById('apptDate').disabled = true;
+      document.getElementById('apptTime').value = event.start.toTimeString().slice(0,5);
+      document.getElementById('apptTime').disabled = true;
+      document.getElementById('apptNotes').value = event.extendedProps.notes || '';
+      document.getElementById('saveBtn').style.display = 'none';
+      cancelBtn.style.display = 'inline-block';
+      cancelBtn.onclick = async () => {
+        if (!confirm('Cancel this appointment?')) return;
+        await fetch(`/api/appointments/${event.id}/cancel`, { method: 'POST' });
+        closeModal();
+        calendar.refetchEvents();
+      };
+      backdrop.classList.add('open');
+    }
+
+    function closeModal() { backdrop.classList.remove('open'); }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const start_time = `${document.getElementById('apptDate').value}T${document.getElementById('apptTime').value}:00`;
+      const payload = {
+        customer_name: document.getElementById('customerName').value,
+        customer_phone: document.getElementById('customerPhone').value,
+        service_id: document.getElementById('serviceId').value,
+        start_time,
+        notes: document.getElementById('apptNotes').value,
+      };
+      const res = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        document.getElementById('formError').innerText = data.error || 'Something went wrong.';
+        return;
+      }
+      closeModal();
+      calendar.refetchEvents();
+    });
+  </script>
+</body>
+</html>

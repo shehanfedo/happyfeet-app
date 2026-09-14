@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Happy Feet — Admin</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <h1>🌸 Happy Feet — Admin Panel</h1>
+    <nav>
+      <a href="/">Calendar</a>
+      <a href="/admin/services">Services</a>
+      <a href="/admin/users">Receptionists</a>
+      <form method="POST" action="/logout" style="display:inline;">
+        <a href="#" onclick="this.closest('form').submit(); return false;">Log Out</a>
+      </form>
+    </nav>
+  </div>
+  <div class="container">
+    <div class="card">
+      <div class="stat-box">
+        <div class="num"><%= todayCount %></div>
+        <div class="label">Appointments Today</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Upcoming Appointments</h3>
+      <table>
+        <tr><th>Customer</th><th>Phone</th><th>Service</th><th>When</th></tr>
+        <% upcoming.forEach(a => { %>
+          <tr>
+            <td><%= a.customer_name %></td>
+            <td><%= a.customer_phone %></td>
+            <td><%= a.service_name %></td>
+            <td><%= new Date(a.start_time).toLocaleString('en-LK') %></td>
+          </tr>
+        <% }) %>
+        <% if (upcoming.length === 0) { %>
+          <tr><td colspan="4">No upcoming appointments.</td></tr>
+        <% } %>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

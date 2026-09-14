@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Happy Feet — Services</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <h1>🌸 Happy Feet — Admin Panel</h1>
+    <nav>
+      <a href="/">Calendar</a>
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/users">Receptionists</a>
+      <form method="POST" action="/logout" style="display:inline;">
+        <a href="#" onclick="this.closest('form').submit(); return false;">Log Out</a>
+      </form>
+    </nav>
+  </div>
+  <div class="container">
+    <div class="card">
+      <h3>Add a Service / Treatment</h3>
+      <form method="POST" action="/admin/services" style="display:flex; gap:10px; align-items:flex-end;">
+        <div class="field" style="flex:2;">
+          <label>Name</label>
+          <input type="text" name="name" required>
+        </div>
+        <div class="field" style="flex:1;">
+          <label>Duration (min)</label>
+          <input type="number" name="duration_minutes" value="30" required>
+        </div>
+        <div class="field" style="flex:1;">
+          <label>Price (LKR)</label>
+          <input type="number" name="price" value="0">
+        </div>
+        <button type="submit">Add</button>
+      </form>
+    </div>
+    <div class="card">
+      <h3>All Services</h3>
+      <table>
+        <tr><th>Name</th><th>Duration</th><th>Price</th><th>Status</th><th></th></tr>
+        <% services.forEach(s => { %>
+          <tr>
+            <td><%= s.name %></td>
+            <td><%= s.duration_minutes %> min</td>
+            <td>LKR <%= s.price %></td>
+            <td><span class="badge <%= s.active ? 'active' : 'inactive' %>"><%= s.active ? 'Active' : 'Hidden' %></span></td>
+            <td>
+              <form method="POST" action="/admin/services/<%= s.id %>/toggle">
+                <button type="submit" style="background:#999;"><%= s.active ? 'Hide' : 'Unhide' %></button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

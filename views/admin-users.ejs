@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Happy Feet — Receptionist Accounts</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <h1>🌸 Happy Feet — Admin Panel</h1>
+    <nav>
+      <a href="/">Calendar</a>
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/services">Services</a>
+      <form method="POST" action="/logout" style="display:inline;">
+        <a href="#" onclick="this.closest('form').submit(); return false;">Log Out</a>
+      </form>
+    </nav>
+  </div>
+  <div class="container">
+    <div class="card">
+      <h3>Add a Receptionist Account</h3>
+      <form method="POST" action="/admin/users" style="display:flex; gap:10px; align-items:flex-end;">
+        <div class="field" style="flex:1;">
+          <label>Full Name</label>
+          <input type="text" name="name" required>
+        </div>
+        <div class="field" style="flex:1;">
+          <label>Username</label>
+          <input type="text" name="username" required>
+        </div>
+        <div class="field" style="flex:1;">
+          <label>Password</label>
+          <input type="password" name="password" required>
+        </div>
+        <button type="submit">Add</button>
+      </form>
+      <% if (error) { %><div class="error-text"><%= error %></div><% } %>
+    </div>
+    <div class="card">
+      <h3>Receptionist Accounts</h3>
+      <table>
+        <tr><th>Name</th><th>Username</th><th>Status</th><th></th></tr>
+        <% users.forEach(u => { %>
+          <tr>
+            <td><%= u.name %></td>
+            <td><%= u.username %></td>
+            <td><span class="badge <%= u.active ? 'active' : 'inactive' %>"><%= u.active ? 'Active' : 'Disabled' %></span></td>
+            <td>
+              <form method="POST" action="/admin/users/<%= u.id %>/toggle">
+                <button type="submit" style="background:#999;"><%= u.active ? 'Disable' : 'Enable' %></button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+        <% if (users.length === 0) { %><tr><td colspan="4">No receptionist accounts yet.</td></tr><% } %>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
